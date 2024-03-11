@@ -1,0 +1,275 @@
+<html>
+
+<head>
+  <title>升级报告</title>
+  <style>
+    html {
+      font-size: 14px;
+      font-family: monospace;
+      line-height: 0.7;
+    }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      width: 400px;
+    }
+    td {
+      padding: 8px 12px;
+      width: 400px;
+      white-space: pre-wrap;
+    }
+    th:first-of-type, td:first-of-type {
+      width: 30%;
+    }
+    table {
+      border-color: #eee;
+      width: 100%;
+    }
+    li {
+      list-style: decimal;
+      font-weight: bold;
+    }
+
+    code {
+      font-size: 14px;
+      line-height: 1;
+      white-space: pre;
+      font-family: monospace;
+      background-color: #1e1e1e;
+      padding: 0 0 0 1em;
+      border-radius: 4px;
+      display: block;
+      width: 50%;
+      margin-bottom: 0.5em;
+      color: #aadafa;
+    }
+
+    .details {
+      margin-top: 20px;
+    }
+
+    .list {
+      white-space: pre;
+      font-size: 14px;
+      font-family: monospace;
+      line-height: 0.7;
+      padding-left: 0;
+      color: #555;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>概览</h2>
+  <p>工程总TS/TSX数：<%= totalTSFileNum %></p>
+  <p>工程总SCSS数：<%= totalSCSSFileNum %></p>
+  <p>通过工具升级TS/TSX数：<%= updateTSFileNum %></p>
+  <p>通过工具升级SCSS数数：<%= updateSCSSFileNum %></p>
+  <p>涉及代码改动点：<%= updateTime %>
+  </p>
+  <br>
+  <h2>升级变更文件清单</h2>
+  <details>
+    <summary>页面文件</summary>
+    <div class="list">
+<% updatePages.forEach((file)=> { %>
+<li><%= file %></li>
+<% }) %>
+    </div>
+  </details>
+  <details>
+    <summary>其他文件</summary>
+    <div class="list">
+<% updateFiles.forEach((file)=> { %>
+<li><%= file %></li>
+<% }) %>
+    </div>
+  </details>
+  <br>
+
+  <br>
+  <h2>未被引用到的文件清单</h2>
+  <details open>
+    <summary>查看列表</summary>
+    <div class="list">
+<% unChangedFile.forEach((file)=> { %>
+<li><%= file %></li>
+<% }) %>
+    </div>
+  </details>
+  <br>
+  <div>
+    <h2>升级类型示例</h2>
+    <h3>1. 依赖转移</h3>
+    <p>历史代码</p>
+    <code>
+import { useEffect, useState, useMemo } from '@tarojs/taro';
+import { connect } from '@tarojs/redux';
+    </code>
+    <p>升级后代码</p>
+    <code>
+import { useEffect, useState, useMemo } from 'react';
+import { connect } from 'react/redux';
+    </code>
+    <h3>2. 属性/类型转移</h3>
+    <p>历史代码</p>
+    <code>
+const A: Taro.FC = (props: Taro.PropsWithChildren) => {
+  const [state, setState] = Taro.useState();
+  return...
+}
+    </code>
+    <p>升级后代码</p>
+    <code>
+const A: React.FC = (props: React.PropsWithChildren) => {
+  const [state, setState] = React.useState();
+  return...
+}
+    </code>
+    <h3>3. scope 处理</h3>
+    <p>历史代码</p>
+    <code>
+import { useScope } from '@tarojs/taro';
+
+// hook类型
+const scope = useScope();
+scope.XXXX.XXXX;
+    </code>
+    <code>
+// class组件类型
+this.$scope.XXXX.XXXX();
+    </code>
+    <p>升级后代码</p>
+    <code>
+import { getCurrentInstance } from '@tarojs/taro';
+getCurrentInstance()?.page.XXXX.XXXX();
+    </code>
+    <h3>4. &&逻辑表达式内联写法，添加!!转为布尔类型</h3>
+    <p>历史代码</p>
+    <code>
+{ money.num && &lt;View className="num ellipsis">{money.num}&lt;/View> }
+    </code>
+    <p>升级后代码</p>
+    <code>
+{ !!money.num && &lt;View className="num ellipsis">{money.num}&lt;/View> }
+    </code>
+    <h3>5. 类函数绑定this</h3>
+    <p>历史代码</p>
+    <code>
+render() {
+  return &lt;View onClick={this.click}>{money.num}&lt;/View>
+}
+    </code>
+    <p>升级后代码</p>
+    <code>
+render() {
+  return &lt;View onClick={this.click.bind(this)}>{money.num}&lt;/View>
+}
+    </code>
+    <h3>6. 子组件 onShow/onHide 代码注入</h3>
+    <p>历史代码</p>
+    <code>
+class A {
+  componentDidShow() {
+    //...
+  }
+}
+    </code>
+    <p>升级后代码</p>
+    <code>
+import { getCurrentInstance, eventCenter } from '@tarojs/taro'
+class A {
+  componentDidShow() {
+    //...
+  }
+  componentWillMount() {
+    const onShowEventId = getCurrentInstance().router.onShow;
+    eventCenter.on(onShowEventId, this.componentDidShow.bind(this));
+  }
+  componentWillUnmount() {
+    const onShowEventId = getCurrentInstance().router.onShow;
+    eventCenter.off(onShowEventId, this.componentDidShow.bind(this));
+  }
+}
+    </code>
+    <h3>7. className 修改</h3>
+    <p>历史代码</p>
+    <code>
+import './index.scss';
+&lt;View className="styleName">&lt;/View>
+&lt;View className={`styleName ${isActive ? "is-active" : 'is-not-active'}`}>&lt;/View>
+&lt;View className={`styleName ${isActive && "is-active"}`}>&lt;/View>
+    </code>
+    <p>升级后代码</p>
+    <code>
+import styles from './index.module.scss';
+&lt;View className={styles['styleName']}">&lt;/View>
+&lt;View className={`${styles['styleName']} ${isActive ? styles['is-active'] : styles['is-not-active']}`}>&lt;/View>
+&lt;View className={`${styles['styleName']} ${isActive && styles['is-active']}`}>&lt;/View>
+    </code>
+  </div>
+  <br>
+  <div>
+    <h2>手工确认代码文件</h2>
+    <p>1、样式通过变量类型引入（<%= warn.length %>个）</p>
+    <table cellspacing="0" border="1px">
+      <tr>
+        <th>文件</th>
+        <th>内容</th>
+      </tr>
+      <% warn.forEach((item)=> { %>
+        <tr>
+          <td><%= item.fileName %></td>
+          <td>
+<% item.children.forEach((file)=> { %>
+  <%= file.content %>
+  <br>
+<% }) %>
+          </td>
+        </tr>
+
+      <% }) %>
+    </table>
+    <br>
+    <p>2、声明的样式类名不存在于任何的文件中（<%= CURRENT_AND_GLOBAL_NOT_MATCH.length %>个）（在工程完整的css树中，并没找到该样式）</p>
+    <table cellspacing="0" border="1px">
+      <tr>
+        <th>文件</th>
+        <th>内容</th>
+      </tr>
+      <% CURRENT_AND_GLOBAL_NOT_MATCH.forEach((item)=> { %>
+        <tr>
+          <td><%= item.fileName %></td>
+          <td>
+<% item.children.forEach((file)=> { %>
+  <%= file.content %>
+  <br>
+<% }) %>
+          </td>
+        </tr>
+      <% }) %>
+    </table>
+    <br>
+    <p>3、声明的样式不存在当前的代码中，但是可以在全局样式中找到（<%= CURRENT_NOT_MATCH_BUT_GLOBAL_MATCH.length %>个）（在工程完整的css树中，找到了该样式，但是无法确定该样式是否与当前代码有关）</p>
+    <table cellspacing="0" border="1px">
+      <tr>
+        <th>文件</th>
+        <th>内容</th>
+      </tr>
+      <% CURRENT_NOT_MATCH_BUT_GLOBAL_MATCH.forEach((item)=> { %>
+        <tr>
+          <td><%= item.fileName %></td>
+          <td>
+<% item.children.forEach((file)=> { %>
+  <%= file.content %>
+  <%= file.source %>
+  <br>
+<% }) %>
+          </td>
+        </tr>
+      <% }) %>
+    </table>
+  </div>
+</body>
+
+</html>
